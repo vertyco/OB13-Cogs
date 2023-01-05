@@ -85,7 +85,7 @@ class Referrals(commands.Cog):
         time_limit = await self.config.guild(ctx.guild).time_limit()
         if time_limit and not (
                 ctx.author.joined_at and
-                (ctx.author.joined_at > (datetime.now() - timedelta(hours=time_limit)))
+                (ctx.author.joined_at.astimezone() > (datetime.now() - timedelta(hours=time_limit)))
         ):
             if log_channel:
                 await log_channel.send(f"{ctx.author.mention} tried to run `{ctx.clean_prefix}referredby` but has exceeded the time limit.")
@@ -182,7 +182,7 @@ class Referrals(commands.Cog):
                 async for m in AsyncIter(ctx.guild.members, steps=500):
                     if (
                         m.joined_at and
-                        (m.joined_at < (datetime.now() - timedelta(hours=time_limit))) and
+                        (m.joined_at.astimezone() < (datetime.now() - timedelta(hours=time_limit))) and
                         m.id not in already_redeemed
                     ):
                         already_redeemed.append(m.id)
