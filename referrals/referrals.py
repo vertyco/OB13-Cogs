@@ -78,15 +78,15 @@ class Referrals(commands.Cog):
 
         # No credit set by admin yet
         to_deposit = await self.config.guild(ctx.guild).amount()
-        if not credits:
-            return await ctx.send("The admin have not set a credit amount to be given yet!")
+        if not to_deposit:
+            return await ctx.send("The admin s not set a credit amount to be given yet!")
 
         # Check if user is within time limit
         time_limit = await self.config.guild(ctx.guild).time_limit()
-        if time_limit and not (
-                ctx.author.joined_at and
-                (ctx.author.joined_at.astimezone() > (datetime.now() - timedelta(hours=time_limit)))
-        ):
+        joined = ctx.author.joined_at.astimezone()\
+            if ctx.author.joined_at else datetime.fromtimestamp(0) - timedelta(hours=time_limit * 2)
+        too_late = datetime.now().astimezone() - timedelta(hours=time_limit)
+        if time_limit and joined < too_late:
             if log_channel:
                 await log_channel.send(f"{ctx.author.mention} tried to run `{ctx.clean_prefix}referredby` but has exceeded the time limit.")
             return await ctx.send("Unfortunately, you have exceeded the time given to run this command after you join.")
@@ -180,11 +180,14 @@ class Referrals(commands.Cog):
 
             async with self.config.guild(ctx.guild).already_redeemed() as already_redeemed:
                 async for m in AsyncIter(ctx.guild.members, steps=500):
-                    if (
-                        m.joined_at and
-                        (m.joined_at.astimezone() < (datetime.now() - timedelta(hours=time_limit))) and
-                        m.id not in already_redeemed
-                    ):
+                    if not m.joined_at and m.id not in already_redeemed:
+                        already_redeemed.append(m.id)
+                        continue
+                    elif not m.joined_at:
+                        continue
+                    joined = m.joined_at.astimezone()
+                    too_late = datetime.now().astimezone() - timedelta(hours=time_limit)
+                    if joined < too_late and m.id not in already_redeemed:
                         already_redeemed.append(m.id)
 
         return await ctx.send("The already-redeemed list was updated successfully!")
